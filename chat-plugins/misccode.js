@@ -1,9 +1,9 @@
 'use strict';
 
-let moment = require('moment');
-let request = require('request');
+const moment = require('moment');
+const request = require('request');
 
-let messages = [
+const messages = [
 	"has vanished into nothingness!",
 	"used Explosion!",
 	"fell into the void.",
@@ -17,6 +17,18 @@ let messages = [
 	"was unfortunate and didn't get a cool message.",
 	"{{user}}'s mama accidently kicked {{user}} from the server!",
 ];
+
+const MD5 = require('MD5');
+const http = require('http');
+const fs = require('fs');
+const defineWord = require('define-word');
+let amCache = {anime:{}, manga:{}};
+let colorCache = {};
+let mainColors = {};
+Grace.customColors = {};
+Grace.staffSymbol = {};
+let regdateCache = {};
+Users.vips = [];
 
 function clearRoom(room) {
 	let len = (room.log && room.log.length) || 0;
@@ -223,14 +235,7 @@ exports.commands = {
 		for (let r in Rooms.rooms) {
 			clearRoom(Rooms.rooms[r]);
 		}
-	},
-
-	hide: function (target, room, user) {
-		if (!this.can('lock')) return false;
-		user.hiding = true;
-		user.updateIdentity();
-		this.sendReply("You have hidden your staff symbol.");
-	},
+	}
 
 	rk: 'kick',
 	roomkick: 'kick',
@@ -269,10 +274,10 @@ exports.commands = {
 
 	masspm: 'pmall',
 	pmall: function (target, room, user) {
-		if (!this.can('pmall')) return false;
+		if (!this.can('hotpatch')) return false;
 		if (!target) return this.parse('/help pmall');
 
-		let pmName = ' Server PM [Do not reply]';
+		let pmName = '~' + user.name + ' [MassPM]';
 
 		Users.users.forEach(function (user) {
 			let message = '|pm|' + pmName + '|' + user.getIdentity() + '|' + target;
@@ -284,10 +289,10 @@ exports.commands = {
 	staffpm: 'pmallstaff',
 	pmstaff: 'pmallstaff',
 	pmallstaff: function (target, room, user) {
-		if (!this.can('forcewin')) return false;
+		if (!this.can('hotpatch')) return false;
 		if (!target) return this.parse('/help pmallstaff');
 
-		let pmName = ' Staff PM [Do not reply]';
+		let pmName = '~' + user.name + ' [StaffPM]';
 
 		Users.users.forEach(function (user) {
 			if (!user.isStaff) return;
@@ -355,13 +360,6 @@ exports.commands = {
 	},
 	regdatehelp: ["/regdate - Please specify a valid username."],
 
-	show: function (target, room, user) {
-		if (!this.can('lock')) return false;
-		user.hiding = false;
-		user.updateIdentity();
-		this.sendReply("You have revealed your staff symbol.");
-	},
-
 	seen: function (target, room, user) {
 		if (!this.runBroadcast()) return;
 		if (!target) return this.parse('/help seen');
@@ -413,4 +411,112 @@ exports.commands = {
 			"|/text This user is currently offline. Your message will be delivered when they are next online.");
 	},
 	tellhelp: ["/tell [username], [message] - Send a message to an offline user that will be received when they log in."],
+
+  togglegdeclares: function (target, room, user) {
+		if (!this.can('declare', null, room)) return false;
+		if (room.isOfficial && this.can('gdeclare')) return this.errorReply("Only global leaders may toggle global declares in official rooms.");
+		if (!room.chatRoomData) return this.errorReply("You can't toggle global declares in this room.");
+		let status = !room.disableGlobalDeclares;
+		room.disableGlobalDeclares = status;
+		room.chatRoomData.disableGlobalDeclares = status;
+		Rooms.global.writeChatRoomData();
+		this.privateModCommand("(" + user.name + " has " + (status ? "disabled" : "enabled") + " global declares in this room.)");
+	},
+
+	etour: function (target, room, user) {
+		if (!target) return this.parse("/help etour");
+		this.parse("/tour create " + target + ", elimination");
+	},
+	etourhelp: ["/etour [format] - Creates an elimination tournament."],
+
+	endpoll: function (target, room, user) {
+		this.parse("/poll end");
+	},
+
+	votes: function (target, room, user) {
+		if (!room.poll) return this.errorReply("There is no poll running in this room.");
+		if (!this.runBroadcast()) return;
+		this.sendReplyBox("votes: " + room.poll.totalVotes);
+	},
+
+	endtour: function (target, room, user) {
+		this.parse("/tour end");
+	},
+
+  def: 'define',
+	define: function (target, room, user) {
+		if (!target) return this.sendReply('Usage: /define <word>');
+		target = toId(target);
+		if (target > 50) return this.sendReply('/define <word> - word can not be longer than 50 characters.');
+		if (!this.runBroadcast()) return;
+
+		let options = {
+			host: 'api.wordnik.com',
+			port: 80,
+			path: '/v4/word.json/' + target + '/definitions?limit=3&sourceDictionaries=all' +
+			'&useCanonical=false&includeTags=false&api_key=a2a73e7b926c924fad7001ca3111acd55af2ffabf50eb4ae5',
+			method: 'GET',
+		};
+
+		http.get(options, res => {
+			let data = '';
+			res.on('data', chunk => {
+				data += chunk;
+			}).on('end', () => {
+				data = JSON.parse(data);
+				let output = '<font color=#24678d><b>Definitions for ' + target + ':</b></font><br />';
+				if (!data[0]) {
+					this.sendReplyBox('No results for <b>"' + target + '"</b>.');
+					return room.update();
+				} else {
+					let count = 1;
+					for (let u in data) {
+						if (count > 3) break;
+						output += '(<b>' + count + '</b>) ' + Chat.escapeHTML(data[u]['text']) + '<br />';
+						count++;
+					}
+					this.sendReplyBox(output);
+					return room.update;
+				}
+			});
+		});
+	},
+
+	u: 'urbandefine',
+	ud: 'urbandefine',
+	urbandefine: function (target, room, user) {
+		if (!this.runBroadcast()) return;
+		if (!target) return this.parse('/help urbandefine');
+		if (target.toString() > 50) return this.sendReply('Phrase can not be longer than 50 characters.');
+		let self = this;
+		let options = {
+			host: 'api.urbandictionary.com',
+			port: 80,
+			path: '/v0/define?term=' + encodeURIComponent(target),
+			term: target,
+		};
+
+		http.get(options, res => {
+			let data = '';
+			res.on('data', chunk => {
+				data += chunk;
+			}).on('end', () => {
+				data = JSON.parse(data);
+				let definitions = data['list'];
+				if (data['result_type'] === 'no_results') {
+					this.sendReplyBox('No results for <b>"' + Chat.escapeHTML(target) + '"</b>.');
+					return room.update();
+				} else {
+					if (!definitions[0]['word'] || !definitions[0]['definition']) {
+						self.sendReplyBox('No results for <b>"' + Chat.escapeHTML(target) + '"</b>.');
+						return room.update();
+					}
+					let output = '<b>' + Chat.escapeHTML(definitions[0]['word']) + ':</b> ' + Chat.escapeHTML(definitions[0]['definition']).replace(/\r\n/g, '<br />').replace(/\n/g, ' ');
+					if (output.length > 400) output = output.slice(0, 400) + '...';
+					this.sendReplyBox(output);
+					return room.update();
+				}
+			});
+		});
+	},
 };
