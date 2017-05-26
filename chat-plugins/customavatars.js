@@ -110,7 +110,7 @@ var cmds = {
 		let link = target[1].trim();
 		if (!link.match(/^https?:\/\//i)) link = 'http://' + link;
 		let allowedFormats = ['png', 'jpg', 'jpeg', 'gif'];
-		setAvatar(link, allowedFormats, targetUser, self);
+		setAvatar(link, allowedFormats, targetUser, this);
 	},
 
 	remove: 'delete',
