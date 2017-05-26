@@ -3,6 +3,8 @@
 const moment = require('moment');
 const request = require('request');
 
+global.Grace = {};
+
 const messages = [
 	"has vanished into nothingness!",
 	"used Explosion!",
