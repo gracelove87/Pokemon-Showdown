@@ -174,7 +174,7 @@ exports.commands = {
         }
       }, 1000);
     }
-  }
+  },
 
 	stafflist: 'authority',
 	auth: 'authority',
