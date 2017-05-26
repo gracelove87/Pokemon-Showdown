@@ -235,7 +235,7 @@ exports.commands = {
 		for (let r in Rooms.rooms) {
 			clearRoom(Rooms.rooms[r]);
 		}
-	}
+	},
 
 	rk: 'kick',
 	roomkick: 'kick',
