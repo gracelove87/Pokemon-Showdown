@@ -38,6 +38,7 @@ function load_custom_avatars() {
 load_custom_avatars();
 
 exports.commands = {
+	ca: 'customavatar',
 	customavatar: {
 		set: function (target, room, user) {
 			if (!this.can('customavatar')) return false;
