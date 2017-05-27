@@ -521,4 +521,152 @@ exports.commands = {
 			});
 		});
 	},
+
+  afk: 'away',
+	busy: 'away',
+	work: 'away',
+	eating: 'away',
+	working: 'away',
+	sleep: 'away',
+	sleeping: 'away',
+	gaming: 'away',
+	nerd: 'away',
+	nerding: 'away',
+	mimis: 'away',
+	away: function (target, room, user, connection, cmd) {
+		if (!user.isAway && user.name.length > 19) return this.sendReply("Your username is too long for any kind of use of this command.");
+
+		target = target ? target.replace(/[^a-zA-Z0-9]/g, '') : 'AWAY';
+		if (cmd !== 'away') target = cmd;
+		let newName = user.name;
+		let status = parseStatus(target, true);
+		let statusLen = status.length;
+		if (statusLen > 14) return this.sendReply("Your away status should be short and to-the-point, not a dissertation on why you are away.");
+
+		if (user.isAway) {
+			let statusIdx = newName.search(/\s\-\s[\u24B6-\u24E9\u2460-\u2468\u24EA]+$/);
+			if (statusIdx > -1) newName = newName.substr(0, statusIdx);
+			if (user.name.substr(-statusLen) === status) return this.sendReply("Your away status is already set to \"" + target + "\".");
+		}
+
+		newName += ' - ' + status;
+		if (newName.length > 18) return this.sendReply("\"" + target + "\" is too long to use as your away status.");
+
+		// forcerename any possible impersonators
+		let targetUser = Users.getExact(user.userid + target);
+		if (targetUser && targetUser !== user && targetUser.name === user.name + ' - ' + target) {
+			targetUser.resetName();
+			targetUser.send("|nametaken||Your name conflicts with " + user.name + (user.name.substr(-1) === "s" ? "'" : "'s") + " new away status.");
+		}
+
+		if (user.can('lock', null, room)) {
+			this.add("|raw|-- " + Prime.nameColor(user.userid, true) + " is now " + target.toLowerCase() + ".");
+			this.parse('/hide');
+		}
+		user.forceRename(newName, user.registered);
+		user.updateIdentity();
+		user.isAway = true;
+	},
+	awayhelp: ["/away [message] - Sets a users away status."],
+
+	back: function (target, room, user) {
+		if (!user.isAway) return this.sendReply("You are not set as away.");
+		user.isAway = false;
+
+		let newName = user.name;
+		let statusIdx = newName.search(/\s\-\s[\u24B6-\u24E9\u2460-\u2468\u24EA]+$/);
+		if (statusIdx < 0) {
+			user.isAway = false;
+			if (user.can('lock', null, room)) this.add("|raw|-- " + Prime.nameColor(user.userid, true) + " is no longer away.");
+			return false;
+		}
+
+		let status = parseStatus(newName.substr(statusIdx + 3), false);
+		newName = newName.substr(0, statusIdx);
+		user.forceRename(newName, user.registered);
+		user.updateIdentity();
+		user.isAway = false;
+		if (user.can('lock', null, room)) {
+			this.add("|raw|-- " + Prime.nameColor(user.userid, true) + " is no longer " + status.toLowerCase() + ".");
+			this.parse('/show');
+		}
+	},
+	backhelp: ["/back - Sets a users away status back to normal."],
+
+	showauth: 'hideauth',
+	show: 'hideauth',
+	hide: 'hideauth',
+	hideauth: function (target, room, user, connection, cmd) {
+		if (!user.can('lock')) return this.sendReply("/hideauth - access denied.");
+		if (cmd === 'show' || cmd === 'showauth') {
+			delete user.hideauth;
+			user.updateIdentity();
+			return this.sendReply("You have revealed your auth symbol.");
+		}
+		let tar = ' ';
+		if (target) {
+			target = target.trim();
+			if (Config.groupsranking.indexOf(target) > -1 && target !== '#') {
+				if (Config.groupsranking.indexOf(target) <= Config.groupsranking.indexOf(user.group)) {
+					tar = target;
+				} else {
+					this.sendReply('The group symbol you have tried to use is of a higher authority than you have access to. Defaulting to \' \' instead.');
+				}
+			} else {
+				this.sendReply('You have tried to use an invalid character as your auth symbol. Defaulting to \' \' instead.');
+			}
+		}
+		user.hideauth = tar;
+		user.updateIdentity();
+		this.sendReply('You are now hiding your auth symbol as \'' + tar + '\'.');
+		this.logModCommand(user.name + ' is hiding auth symbol as \'' + tar + '\'');
+	},
+
+	rpoll: 'roompoll',
+	roompoll: function (target, room, user) {
+		if (!target) {
+			if (!this.can('broadcast', null, room) || room.battle) return false;
+			if (!room.RPoll) return this.parse('/help roompoll');
+			return this.parse('/poll create ' + room.RPoll);
+		}
+		let parts = target.split(" ");
+		let action = toId(parts[0] || " ");
+		let details = parts.slice(1).join(" ");
+		if (action === "help") return this.parse('/help roompoll');
+		if (action === "change" || action === "set") {
+			if (!this.can('declare', null, room) || room.battle) return false;
+			if (!toId(details || " ")) return this.parse('/help roompoll');
+			if (details.split(",").length < 3) return this.errorReply("You did not include enough arguments for the poll.");
+			room.RPoll = details.replace(/^\/poll/i, "");
+			if (room.chatRoomData) {
+				room.chatRoomData.RPoll = room.RPoll;
+				Rooms.global.writeChatRoomData();
+			}
+			return this.sendReply("The roompoll has been set.");
+		}
+		if (action === 'view') {
+			if (!this.can('declare', null, room)) return false;
+			if (!room.RPoll) return this.errorReply("No roompoll has been set yet.");
+			return this.sendReply("The roompoll is: /poll create " + room.RPoll);
+		}
+		if (action === 'end') {
+			if (!this.can('broadcast', null, room) || room.battle) return false;
+			return this.parse('/poll end');
+		} else {
+			return this.errorReply("This is not a valid roompoll command, do '/roompoll help' for more information");
+		}
+	},
+	roompollhelp: ["- /roompoll - creates a new roompoll. (Start poll with '/roompoll', display poll with '!pr', end poll with '/endpoll'). Requires: + $ % @ # & ~",
+		"- /roompoll set/change [details] - sets the roompoll. Requires: # & ~",
+		"- /roompoll view - displays the command for the current roompoll. Requires: # & ~"],
+
+	formatpoll: 'tierpoll',
+	tpoll: 'tierpoll',
+	tierspoll: 'tierpoll',
+	tierpoll: function (target, room, user) {
+		if (room.battle) return false;
+		if (!this.can('broadcast', null, room)) return false;
+		if (room.game && room.id === 'lobby') return this.errorReply("Polls cannot be created in Lobby when there is a room game in progress.");
+		this.parse('/poll create Tier for the next tournament?, ' + polltiers.join(', '));
+	},
 };
