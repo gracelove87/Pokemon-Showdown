@@ -100,7 +100,7 @@ global.Ladders = require(Config.remoteladder ? './ladders-remote' : './ladders')
 
 global.Users = require('./users');
 
-global.DatabaseManager = require('./db');
+global.DatabaseManager = new (require('./db'))();
 if (DatabaseManager.init && DatabaseManager.runInit) DatabaseManager.init();
 global.Query = DatabaseManager.query;
 
