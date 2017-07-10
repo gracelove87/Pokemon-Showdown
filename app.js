@@ -110,6 +110,8 @@ global.Chat = require('./chat');
 
 global.Rooms = require('./rooms');
 
+global.Renegade = {};
+
 delete process.send; // in case we're a child process
 global.Verifier = require('./verifier');
 Verifier.PM.spawn();
