@@ -55,7 +55,7 @@ exports.commands = {
 		let targetUser = Users.getExact(target);
 		let username = (targetUser ? targetUser.name : target);
 		let userid = toId(username);
-		let avatar = (Config.customavatars[userid] ? 'http://bot-undernight.c9users.io/avatars/' + Config.customavatars[userid] : "http://play.pokemonshowdown.com/sprites/trainers/167.png");
+		let avatar = (Config.customavatars[userid] ? 'http://158.69.217.41:8000/avatars/' + Config.customavatars[userid] : "http://play.pokemonshowdown.com/sprites/trainers/167.png");
 		if (targetUser) {
 			avatar = (isNaN(targetUser.avatar) && targetUser.avatar[0] !== '#' ? 'http://bot-undernight.c9users.io/avatars/' + targetUser.avatar : "http://play.pokemonshowdown.com/sprites/trainers/" + toId(targetUser.avatar) + ".png");
 		}
