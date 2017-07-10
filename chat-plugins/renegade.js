@@ -1,17 +1,17 @@
 /*
 
-************************************************************
-*                                                          *
-*                      renegade.js                         *
-*                                                          *
-*                      By Execute                          *
-*                                                          *
-* This file contains :                                     *
-* - Majority of the functions renegade Relies on           *
-* - Majority of the Data management                        *
-* - Assignment of Most functions to global renegade Object *
-*                                                          *
-************************************************************
+*************************************************************
+*                                                           *
+*                      Renegade.js                          *
+*                                                           *
+*                      By Execute                           *
+*                                                           *
+* This file contains :                                      *
+* - Majority of the functions Renegade Relies on            *
+* - Majority of the Data management                         *
+* - Assignment of Most functions to global Renegade Object  *
+*                                                           *
+*************************************************************
 
 */
 
@@ -25,16 +25,16 @@ const http = require('http');
 const shortid = require('shortid');
 const fs = require('fs');
 const sqlite3 = require('sqlite3');
-const db = new sqlite3.Database('config/renegade.db', function () {
+const db = new sqlite3.Database('config/Renegade.db', function () {
 	db.run("CREATE TABLE IF NOT EXISTS users(userid TEXT, money INTEGER, title TEXT, profilecolor TEXT, textcolor TEXT, background TEXT, music TEXT, isDev NUMBER, seen INTEGER)");
 });
 const shop = new sqlite3.Database('config/shop.db', function () {
 	shop.run("CREATE TABLE IF NOT EXISTS items(name TEXT, id TEXT, desc TEXT, price INTEGER)");
 });
 
-renegade.customColors = {};
+Renegade.customColors = {};
 
-Object.assign(renegade, {
+Object.assign(Renegade, {
 	font:function (text, color, bold, italic) {
 		return '<font color="' + (color ? color : 'black') + '">' + (bold ? '<b>' : '') + (italic ? '<i>' : '') + text + (italic ? '</i>' : '') + (bold ? '</b>' : '') + '</font>';
 	},
@@ -59,11 +59,11 @@ Object.assign(renegade, {
 	lastSeen:function (user, callback) {
 		db.all("SELECT * FROM users WHERE userid=$userid", {$userid: user}, function (err, rows) {
 			if (err) return console.log(err);
-			if (callback) return callback(rows[0] ? renegade.font(moment(rows[0].seen).fromNow(), 'black', true, false) : null);
+			if (callback) return callback(rows[0] ? Renegade.font(moment(rows[0].seen).fromNow(), 'black', true, false) : null);
 		});
 	},
 	hashcolor:function (user) {
-		if (renegade.customColors[toId(user)]) return renegade.customColors[toId(user)];
+		if (Renegade.customColors[toId(user)]) return Renegade.customColors[toId(user)];
 		return color(user);
 	},
 	addTitle:function (user, title) {
@@ -146,7 +146,7 @@ Object.assign(renegade, {
 		};
 		db.all("SELECT * FROM users WHERE userid=$userid", {$userid:user}, function (err, rows) {
 			if (err) console.log(err);
-			Wish.regdate(user, res => {
+			Renegade.regdate(user, res => {
 				if (!rows[0]) {
 					if (!res) return callback(reply);
 					reply.regdate = moment(res).format("MMMM DD, YYYY");
@@ -387,7 +387,7 @@ Object.assign(renegade, {
 			oricoriopau: 804 + 141,
 			oricoriosensu: 804 + 142,
 			lycanrocmidnight: 804 + 143,
-			wishiwashischool: 804 + 144,
+			Renegadeiwashischool: 804 + 144,
 			miniormeteor: 804 + 145,
 			miniororange: 804 + 146,
 			minioryellow: 804 + 147,
