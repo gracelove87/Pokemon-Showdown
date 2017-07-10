@@ -752,6 +752,7 @@ class User {
 
 		// rename success
 		if (this.forceRename(name, registered)) {
+			Renegade.initUser(toId(name));
 			Rooms.global.checkAutojoin(this);
 			if (Config.loginfilter) Config.loginfilter(this, null, userType);
 			return true;
@@ -1029,6 +1030,7 @@ class User {
 		}
 	}
 	onDisconnect(connection) {
+		if (this.named) Renegade.updateSeen(this.userid);
 		for (let i = 0; i < this.connections.length; i++) {
 			if (this.connections[i] === connection) {
 				// console.log('DISCONNECT: ' + this.userid);
