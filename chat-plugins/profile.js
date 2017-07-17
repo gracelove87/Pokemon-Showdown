@@ -41,6 +41,7 @@ function userTeam (user) {
 	for (let i = 0; i < pos.length; i++) {
 		if (!teams[user][pos[i]]) display += '<span class="picon" style="' + Renegade.getPokemonIcon('missingno') + '"/></span>';
 		else display += '<button name="send" value="/dt ' + Dex.data.Pokedex[toId(teams[user][pos[i]])].species  + '" style="border:0;background:none;"><span class="picon" style="' + Renegade.getPokemonIcon(teams[user][pos[i]]) + '"></span></button>';
+		if (i === 2) display += '<br>';
 	}
 	display += '</div>';
 	return display;
